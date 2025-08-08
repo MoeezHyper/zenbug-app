@@ -1,0 +1,74 @@
+import Login from "../models/login.model.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+
+export const Register = async (req, res) => {
+  const { username, password, email } = req.body;
+
+  if (!username || !password || !email) {
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields required" });
+  }
+
+  try {
+    const existingUser = await Login.findOne({ username });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Username already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new Login({ username, email, password: hashedPassword });
+    await user.save();
+
+    res
+      .status(201)
+      .json({ success: true, message: "User registered successfully" });
+  } catch (error) {
+    console.error("Registration error:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const Loginuser = async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Username and password required" });
+  }
+
+  try {
+    const user = await Login.findOne({ username });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    res.status(200).json({ success: true, token });
+  } catch (error) {
+    console.error("Login error:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

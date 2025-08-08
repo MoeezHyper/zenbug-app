@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "backend/server.js" },
+    { "src": "/(?<splat>.*)", "dest": "frontend/dist/index.html" }
+  ],
+  "buildCommand": "npm install --prefix api && npm install --prefix frontend && npm run build --prefix frontend",
+  "outputDirectory": "frontend/dist"
+}
