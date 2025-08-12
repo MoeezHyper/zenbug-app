@@ -1,13 +1,15 @@
 import logo from "../assets/logo2.png";
 import { RxDashboard } from "react-icons/rx";
+import { FiUsers } from "react-icons/fi";
 import { GrLogout } from "react-icons/gr";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Navbar = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -18,13 +20,39 @@ const Navbar = () => {
     }, 1200);
   };
 
+  // Fetch user info to check if admin
+  const fetchUserInfo = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch(`${apiUrl}/auth/verify`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserInfo(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
   return (
     <section>
       {/* Mobile menu toggle button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="text-white bg-zinc-800 p-2 rounded-md shadow-md"
+          className="text-white bg-neutral-900 p-2 rounded-md shadow-md"
         >
           <HiOutlineMenuAlt3 size={24} />
         </button>
@@ -40,9 +68,9 @@ const Navbar = () => {
 
       {/* SIDEBAR */}
       <div
-        className={`fixed top-0 left-0 h-screen w-[100px] max-md:w-[70px] z-40 transition-transform duration-300
+        className={`fixed top-0 left-0 h-screen w-[80px] max-md:w-[70px] z-40 transition-transform duration-300
       ${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:block
-      bg-zinc-800/80 backdrop-blur-md`}
+      bg-neutral-900 backdrop-blur-md`}
       >
         <div className="flex flex-col px-2 py-5 justify-between items-center min-h-screen">
           {/* Logo */}
@@ -50,7 +78,7 @@ const Navbar = () => {
             <img
               src={logo}
               alt="logo"
-              className="w-[30px] h-[35px] max-md:w-[20px] max-md:h-[25px] max-md:mt-17"
+              className="w-[25px] h-[30px] max-md:w-[20px] max-md:h-[25px] max-md:mt-17"
             />
             <div className="text-center">
               <p className="text-[13px] max-md:text-[9px] mt-1 font-audiowide text-gray-100">
@@ -61,6 +89,23 @@ const Navbar = () => {
 
           {/* Navigation buttons */}
           <div className="flex flex-col items-center justify-between text-center gap-10 text-white">
+            {userInfo?.username === "admin" && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate("/users");
+                }}
+                className="group hover:cursor-pointer"
+              >
+                <div className="flex flex-col items-center justify-center text-center">
+                  <FiUsers className="size-[55%] transition-all duration-300 group-hover:filter group-hover:drop-shadow-[0_0_6px_white]" />
+                  <p className="font-varela text-[10px] mt-2 uppercase max-md:text-[9px]">
+                    Users
+                  </p>
+                </div>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 setMenuOpen(false);
@@ -70,7 +115,7 @@ const Navbar = () => {
             >
               <div className="flex flex-col items-center justify-center text-center">
                 <RxDashboard className="size-[30%] transition-all duration-300 group-hover:filter group-hover:drop-shadow-[0_0_6px_white]" />
-                <p className="font-varela text-[11px] mt-2 uppercase max-md:text-[9px]">
+                <p className="font-varela text-[10px] mt-2 uppercase max-md:text-[9px]">
                   Dashboard
                 </p>
               </div>
@@ -87,14 +132,14 @@ const Navbar = () => {
               <div className="flex flex-col items-center justify-center text-center">
                 <GrLogout
                   className={`transition-[filter] duration-300 ml-1 group-hover:filter group-hover:drop-shadow-[0_0_6px_white] ${
-                    loggingOut ? "size-[27%]" : "size-[40%]"
+                    loggingOut ? "size-[27%]" : "size-[35%]"
                   }`}
                 />
                 <p
                   className={`font-varela mt-2 uppercase ${
                     loggingOut
                       ? "text-[9px] max-md:text-[8px]"
-                      : "text-[11px] max-md:text-[9px]"
+                      : "text-[10px] max-md:text-[9px]"
                   }`}
                 >
                   {loggingOut ? "Logging out..." : "Logout"}

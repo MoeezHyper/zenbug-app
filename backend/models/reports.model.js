@@ -6,9 +6,18 @@ const reportSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    projectName: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     description: {
       type: String,
       required: true,
+    },
+    name: {
+      type: String,
+      required: false,
     },
     email: {
       type: String,
@@ -22,6 +31,10 @@ const reportSchema = mongoose.Schema(
     },
 
     imageUrl: {
+      type: String,
+      required: false,
+    },
+    videoUrl: {
       type: String,
       required: false,
     },
@@ -44,6 +57,14 @@ const reportSchema = mongoose.Schema(
         required: true,
       },
       viewport: {
+        type: String,
+        required: true,
+      },
+      ip: {
+        type: String,
+        required: true,
+      },
+      location: {
         type: String,
         required: true,
       },

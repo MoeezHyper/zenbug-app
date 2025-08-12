@@ -22,6 +22,11 @@ const loginSchema = new mongoose.Schema(
         message: "Invalid email format",
       },
     },
+    project: {
+      type: String,
+      default: "all",
+      trim: true,
+    },
   },
   {
     timestamps: true,

@@ -93,8 +93,8 @@ const ReportDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-zinc-900">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-black/90">
+        <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -110,17 +110,19 @@ const ReportDetail = () => {
     description,
     email,
     imageUrl,
+    videoUrl,
     severity,
     status,
     createdAt,
     updatedAt,
     metadata,
+    name,
   } = report;
 
   return (
     <div className="flex md:pl-[100px] max-md:pl-4 max-md:pr-4 max-md:py-10 pr-5 ml-5">
       <div className="flex flex-1 justify-center items-start pt-10 text-white font-montserrat w-full">
-        <div className="bg-zinc-800 p-6 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between gap-10 w-full max-w-screen-lg min-h-[700px]">
+        <div className="bg-neutral-900 mt-15 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between gap-10 w-full max-w-[85%] min-h-[700px]">
           {/* LEFT SIDE */}
           <div className="flex flex-col justify-between w-full md:w-1/2">
             <div>
@@ -133,7 +135,10 @@ const ReportDetail = () => {
                 <strong>Description:</strong> {description}
               </p>
               <p className="py-1">
-                <strong>Reporter Email:</strong> {email}
+                <strong>Reporter Name:</strong> {name || "N/A"}
+              </p>
+              <p className="py-1">
+                <strong>Reporter Email:</strong> {email || "N/A"}
               </p>
               <p className="py-1">
                 <strong>Status:</strong>{" "}
@@ -183,7 +188,7 @@ const ReportDetail = () => {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="bg-zinc-700 text-white px-3 py-1 rounded"
+                    className="bg-neutral-800 hover:bg-neutral-700 text-white px-3 py-1 rounded cursor-pointer"
                   >
                     <option value="open">Open</option>
                     <option value="in-progress">In Progress</option>
@@ -191,7 +196,7 @@ const ReportDetail = () => {
                   </select>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-blue-500 px-4 py-1 rounded hover:bg-blue-600 transition-all duration-200"
+                    className="bg-neutral-800 px-4 py-1 rounded hover:bg-neutral-700 cursor-pointer transition-all duration-200"
                     disabled={updating}
                   >
                     {updating ? "Updating..." : "Submit"}
@@ -235,40 +240,54 @@ const ReportDetail = () => {
                 <li>
                   <strong>Viewport:</strong> {metadata.viewport}
                 </li>
+                <li>
+                  <strong>IP Address:</strong> {metadata.ip || "N/A"}
+                </li>
+                <li>
+                  <strong>Location:</strong> {metadata.location || "N/A"}
+                </li>
               </ul>
             </div>
           </div>
 
-          {/* RIGHT SIDE - IMAGE */}
-          {imageUrl && (
-            <div className="flex flex-col items-center w-full md:w-1/2 mt-10 md:mt-0">
-              <strong className="text-2xl font-bold mb-4">Screenshot</strong>
+          {/* RIGHT SIDE - ATTACHMENT (Video or Screenshot) */}
+          {(videoUrl || imageUrl) && (
+            <div className="flex flex-col items-center w-full">
+              <strong className="text-2xl font-bold mb-4">
+                {videoUrl ? "Video" : "Screenshot"}
+              </strong>
 
-              {imageLoading && !imageError && (
-                <div className="flex items-center justify-center w-full h-[200px] sm:h-[300px]">
-                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
+              {videoUrl ? (
+                <video className="rounded-lg w-full" controls src={videoUrl} />
+              ) : (
+                <>
+                  {imageLoading && !imageError && (
+                    <div className="flex items-center justify-center w-full ">
+                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
 
-              {!imageError && (
-                <img
-                  src={imageUrl}
-                  alt="Report Screenshot"
-                  className={`rounded-lg w-full max-h-[400px] object-contain ${
-                    imageLoading ? "hidden" : "block"
-                  }`}
-                  onLoad={() => setImageLoading(false)}
-                  onError={() => {
-                    setImageLoading(false);
-                    setImageError(true);
-                  }}
-                />
-              )}
+                  {!imageError && (
+                    <img
+                      src={imageUrl}
+                      alt="Report Screenshot"
+                      className={`rounded-lg w-full object-contain ${
+                        imageLoading ? "hidden" : "block"
+                      }`}
+                      onLoad={() => setImageLoading(false)}
+                      onError={() => {
+                        setImageLoading(false);
+                        setImageError(true);
+                      }}
+                    />
+                  )}
 
-              {imageError && (
-                <p className="mt-4 text-red-500">
-                  ⚠️ Failed to load screenshot.
-                </p>
+                  {imageError && (
+                    <p className="mt-4 text-red-500">
+                      ⚠️ Failed to load screenshot.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

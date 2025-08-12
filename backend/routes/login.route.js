@@ -1,6 +1,12 @@
 import express from "express";
-import { Register, Loginuser } from "../controllers/login.controller.js";
-import { authenticate } from "../middlewares/authenticate.js";
+import {
+  Register,
+  Loginuser,
+  getAllUsers,
+  updateUser,
+} from "../controllers/login.controller.js";
+import { authenticate } from "../middlewares/auth.middleware.js";
+import { adminOnly } from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
@@ -13,5 +19,7 @@ router.get("/verify", authenticate, (req, res) => {
     message: "Token is valid",
   });
 });
+router.get("/users", authenticate, adminOnly, getAllUsers);
+router.patch("/users/:id", authenticate, adminOnly, updateUser);
 
 export default router;

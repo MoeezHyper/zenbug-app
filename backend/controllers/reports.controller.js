@@ -6,10 +6,22 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const createReport = async (req, res) => {
   try {
-    const { title, description, severity } = req.body;
+    const { title, description, severity, name, email, projectName } = req.body;
 
-    // Parse metadata from string to object
-    const metadata = JSON.parse(req.body.metadata || "{}");
+    // Parse metadata safely
+    let metadata = {};
+    try {
+      const rawMetadata = req.body.metadata;
+      metadata =
+        typeof rawMetadata === "string"
+          ? JSON.parse(rawMetadata || "{}")
+          : rawMetadata || {};
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid metadata format.",
+      });
+    }
 
     if (!title || !description || !metadata.url) {
       return res.status(400).json({
@@ -18,45 +30,82 @@ export const createReport = async (req, res) => {
       });
     }
 
-    // Handle screenshot upload
+    // Handle file upload: either screenshot (image) or video (one at a time)
     let imageUrl = null;
-    const file = req.file; // available from multer middleware
+    let videoUrl = null;
+    const screenshotFile = req.files?.screenshot?.[0];
+    const videoFile = req.files?.video?.[0];
 
-    if (file) {
-      // Optional: validate mimetype
-      if (!file.mimetype.startsWith("image/")) {
+    if (screenshotFile && videoFile) {
+      return res.status(400).json({
+        success: false,
+        message: "Send either a screenshot or a video, not both.",
+      });
+    }
+
+    if (screenshotFile) {
+      if (!screenshotFile.mimetype.startsWith("image/")) {
         return res.status(400).json({
           success: false,
-          message: "Uploaded file is not a valid image.",
+          message: "Uploaded screenshot is not a valid image.",
         });
       }
 
-      const fileName = `screenshot-${Date.now()}.png`;
-
-      const { data, error } = await supabase.storage
+      const ext = screenshotFile.originalname.split(".").pop();
+      const fileName = `screenshot-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
         .from("screenshots")
-        .upload(fileName, file.buffer, {
-          contentType: file.mimetype,
+        .upload(fileName, screenshotFile.buffer, {
+          contentType: screenshotFile.mimetype,
         });
-
-      if (error) {
-        console.warn("⚠️ Supabase upload failed:", error.message);
+      if (uploadError) {
+        console.warn("⚠️ Supabase upload failed:", uploadError.message);
       } else {
-        const publicUrl = supabase.storage
+        const { data: publicData } = supabase.storage
           .from("screenshots")
-          .getPublicUrl(fileName).data.publicUrl;
+          .getPublicUrl(fileName);
+        imageUrl = publicData.publicUrl;
+      }
+    }
 
-        imageUrl = publicUrl;
+    if (videoFile) {
+      if (!videoFile.mimetype.startsWith("video/")) {
+        return res.status(400).json({
+          success: false,
+          message: "Uploaded file is not a valid video.",
+        });
+      }
+
+      const ext = videoFile.originalname.split(".").pop();
+      // Store videos at the root of the 'screenshots' bucket (no 'videos/' folder)
+      const videoName = `video-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("screenshots")
+        .upload(videoName, videoFile.buffer, {
+          contentType: videoFile.mimetype,
+          upsert: false,
+        });
+      if (uploadError) {
+        console.warn("⚠️ Supabase upload failed:", uploadError.message);
+      } else {
+        const { data: publicData } = supabase.storage
+          .from("screenshots")
+          .getPublicUrl(videoName);
+        videoUrl = publicData.publicUrl;
       }
     }
 
     // Save report
     const newReport = new Report({
       title,
+      projectName,
       description,
+      name,
+      email,
       severity,
       metadata,
       imageUrl,
+      videoUrl,
     });
 
     await newReport.save();
@@ -69,6 +118,9 @@ export const createReport = async (req, res) => {
       text: `
 New bug report submitted:
 
+Name: ${name || "N/A"}
+Email: ${email || "N/A"}
+Project: ${projectName || "N/A"}
 Title: ${title}
 Severity: ${severity || "Not specified"}
 
@@ -79,6 +131,8 @@ Submitted from: ${metadata.url}
 Browser: ${metadata.browser}
 OS: ${metadata.os}
 Viewport: ${metadata.viewport}
+IP: ${metadata.ip || "N/A"}
+Location: ${metadata.location || "N/A"}
 ${imageUrl ? `\nScreenshot: ${imageUrl}` : ""}
       `,
     });
@@ -92,7 +146,18 @@ ${imageUrl ? `\nScreenshot: ${imageUrl}` : ""}
 
 export const getReport = async (req, res) => {
   try {
-    const report = await Report.find({});
+    let query = {};
+
+    // If user is not admin and has a specific project assignment, filter reports
+    if (
+      req.user.username !== "admin" &&
+      req.user.project &&
+      req.user.project !== "all"
+    ) {
+      query.projectName = req.user.project;
+    }
+
+    const report = await Report.find(query);
     res.status(200).json({ success: true, data: report });
   } catch (error) {
     console.error("Error in fetching reports:", error.message);
@@ -137,38 +202,59 @@ export const deleteReport = async (req, res) => {
 
   try {
     const report = await Report.findById(id);
-
     if (!report) {
       return res
         .status(404)
         .json({ success: false, message: "Report not found" });
     }
 
-    const imageUrl = report.imageUrl;
-    let fileName = null;
+    // Extract clean filenames
+    const cleanFileName = (url) => {
+      if (!url) return null;
+      const parts = url.split("/");
+      let fileName = parts[parts.length - 1];
+      // Remove codec/query parameters
+      fileName = fileName.split(";")[0].split("?")[0];
+      return fileName;
+    };
 
-    if (imageUrl) {
-      const parts = imageUrl.split("/");
-      fileName = parts[parts.length - 1];
-    }
+    const imageFileName = cleanFileName(report.imageUrl);
+    const videoFileName = cleanFileName(report.videoUrl);
 
+    // Delete DB record
     await Report.findByIdAndDelete(id);
 
-    if (fileName) {
-      const { error } = await supabase.storage
-        .from("screenshots")
-        .remove([fileName]);
+    // Delete image from Supabase
+    if (imageFileName) {
+      await supabase.storage.from("screenshots").remove([imageFileName]);
+    }
 
-      if (error) {
-        console.warn("Failed to delete Supabase file:", error.message);
-      }
+    // Delete video from Supabase
+    if (videoFileName) {
+      await supabase.storage.from("screenshots").remove([videoFileName]);
     }
 
     res
       .status(200)
-      .json({ success: true, message: "Report and image deleted" });
+      .json({ success: true, message: "Report, image, and video deleted" });
   } catch (error) {
     console.error("Error deleting report:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getProjectNames = async (req, res) => {
+  try {
+    const projectNames = await Report.distinct("projectName");
+    // Filter out null/undefined values and add "all" option
+    const validProjects = projectNames.filter(
+      (name) => name && name.trim() !== ""
+    );
+    const projects = ["all", ...validProjects];
+
+    res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+    console.error("Error fetching project names:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -58,7 +58,7 @@ const Login = () => {
           </p>
         </div>
       </div>
-      <div className="w-full max-w-sm max-md:max-w-[350px] p-8 bg-zinc-900 rounded-2xl shadow-2xl backdrop-blur-md border border-zinc-800">
+      <div className="w-full max-w-sm max-md:max-w-[350px] p-8 bg-neutral-900 rounded-2xl shadow-2xl backdrop-blur-md border border-neutral-800">
         {message ? (
           <p className="text-center mb-4 text-red-500 font-semibold text-lg font-montserrat">
             ⚠️ {message}
@@ -96,7 +96,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loggingIn}
-            className={`w-full py-2 rounded-md font-semibold transition-all ${
+            className={`w-full py-2 rounded-md font-semibold transition-all cursor-pointer ${
               loggingIn
                 ? "bg-gray-500 text-white cursor-not-allowed"
                 : "bg-white text-black hover:bg-gray-200"

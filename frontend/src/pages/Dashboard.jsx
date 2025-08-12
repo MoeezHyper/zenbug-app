@@ -7,7 +7,7 @@ const Dashboard = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const reportsPerPage = 15;
+  const reportsPerPage = 13;
 
   const navigate = useNavigate();
 
@@ -60,14 +60,14 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col md:flex-row md:pl-[100px]">
       <div className="flex flex-1 flex-col justify-center items-center overflow-x-auto min-h-screen px-4 py-8 max-md:py-18">
-        <div className="bg-zinc-800/80 md:min-h-[90%] flex flex-col w-full max-w-7xl px-4 sm:px-10 py-6 sm:py-10 rounded-2xl">
+        <div className="bg-neutral-900 md:min-h-[90%] flex flex-col w-full max-w-7xl px-4 sm:px-10 py-6 sm:py-10 rounded-2xl">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 mb-6">
             <p className="font-bold font-varela">Filter Options: </p>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2 py-1 rounded bg-zinc-700 text-white font-varela border-b"
+              className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-white font-varela border-b cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
@@ -78,7 +78,7 @@ const Dashboard = () => {
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value)}
-              className="px-2 py-1 rounded bg-zinc-700 text-white font-varela border-b"
+              className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-white font-varela border-b cursor-pointer"
             >
               <option value="all">All Severities</option>
               <option value="low">Low</option>
@@ -90,23 +90,23 @@ const Dashboard = () => {
           {/* Table */}
           <div className="overflow-x-auto rounded-md">
             <table className="min-w-full text-white border-white border-4 outline-2 outline-white rounded-md shadow-md">
-              <thead className="bg-gray-100 text-left text-[14px] sm:text-[16px] font-medium font-varela">
+              <thead className="bg-gray-100 text-left text-md font-varela">
                 <tr>
-                  <th className="px-4 py-2 min-w-[300px] sm:min-w-[400px] text-gray-700">
+                  <th className="px-4 py-2 min-w-[300px] sm:min-w-[400px] text-black">
                     Title
                   </th>
-                  <th className="px-4 py-2 text-gray-700">Status</th>
-                  <th className="px-4 py-2 text-gray-700">Severity</th>
-                  <th className="px-4 py-2 text-gray-700">Created At</th>
-                  <th className="px-4 py-2 text-gray-700">Updated At</th>
+                  <th className="px-4 py-2 text-black">Status</th>
+                  <th className="px-4 py-2 text-black">Severity</th>
+                  <th className="px-4 py-2 text-black">Created At</th>
+                  <th className="px-4 py-2 text-black">Updated At</th>
                 </tr>
               </thead>
-              <tbody className="font-montserrat text-sm">
+              <tbody className="font-montserrat text-md">
                 {currentReports.map((report) => (
                   <tr
                     key={report._id}
                     onClick={() => navigate(`/report/${report._id}`)}
-                    className="border-t cursor-pointer hover:bg-gray-800/90"
+                    className="border-t cursor-pointer hover:bg-neutral-700"
                   >
                     <td className="px-4 py-2">{report.title}</td>
                     <td
@@ -195,10 +195,10 @@ const Dashboard = () => {
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-1 rounded border border-white text-sm ${
+                className={`px-4 py-1 rounded border border-white text-sm cursor-pointer ${
                   currentPage === i + 1
-                    ? "bg-blue-500 text-white"
-                    : "bg-zinc-700 text-white hover:bg-zinc-600"
+                    ? "bg-neutral-700 text-white hover:bg-neutral-600"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800"
                 }`}
               >
                 {i + 1}

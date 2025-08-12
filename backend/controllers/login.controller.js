@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
 export const Register = async (req, res) => {
-  const { username, password, email } = req.body;
+  const { username, password, email, project = "all" } = req.body;
 
   if (!username || !password || !email) {
     return res
@@ -22,7 +22,12 @@ export const Register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new Login({ username, email, password: hashedPassword });
+    const user = new Login({
+      username,
+      email,
+      password: hashedPassword,
+      project,
+    });
     await user.save();
 
     res
@@ -69,6 +74,46 @@ export const Loginuser = async (req, res) => {
     res.status(200).json({ success: true, token });
   } catch (error) {
     console.error("Login error:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await Login.find({}, { password: 0 }); // Exclude password field
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    console.error("Get users error:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  const { id } = req.params;
+  const { project } = req.body;
+
+  if (!project) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Project field is required" });
+  }
+
+  try {
+    const updatedUser = await Login.findByIdAndUpdate(
+      id,
+      { project },
+      { new: true, select: { password: 0 } } // Exclude password from response
+    );
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (error) {
+    console.error("Update user error:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
