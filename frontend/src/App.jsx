@@ -8,6 +8,7 @@ import Users from "./pages/Users";
 import Login from "./pages/Login";
 import ReportDetail from "./pages/ReportDetail";
 import Navbar from "./components/Navbar";
+import logoz from "./assets/logoz.png";
 
 const App = () => {
   const navigate = useNavigate();
@@ -26,7 +27,14 @@ const App = () => {
   }, [navigate]);
 
   return (
-    <div className=" bg-black/95 text-white min-h-screen">
+    <div className=" bg-black/95 text-white min-h-screen relative">
+      <div className="fixed bottom-4 right-4 z-10">
+        <img
+          src={logoz}
+          alt="Logo zendev"
+          className="w-16 h-16 object-contain drop-shadow-[0_0_20px_rgba(59,130,246,1)]"
+        />
+      </div>
       {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Login />} />
