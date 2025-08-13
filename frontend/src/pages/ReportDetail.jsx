@@ -8,9 +8,15 @@ const ReportDetail = () => {
   const [report, setReport] = useState(null);
   const [unauthorized, setUnauthorized] = useState(false);
   const [newStatus, setNewStatus] = useState("");
+  const [originalStatus, setOriginalStatus] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [originalProjectName, setOriginalProjectName] = useState("");
+  const [projectOptions, setProjectOptions] = useState([]);
   const [updating, setUpdating] = useState(false);
+  const [updatingProject, setUpdatingProject] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updateMessage, setUpdateMessage] = useState("");
+  const [projectUpdateMessage, setProjectUpdateMessage] = useState("");
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -35,9 +41,59 @@ const ReportDetail = () => {
         const data = await res.json();
         const foundReport = data.data.find((r) => r._id === id);
 
+        // Extract unique project names from all reports
+        const uniqueProjectNames = [
+          ...new Set(
+            data.data
+              .map((report) => report.projectName)
+              .filter((name) => name && name.trim() !== "")
+          ),
+        ];
+
+        // Fetch project names from the dedicated endpoint instead
+        try {
+          const projectRes = await fetch(`${apiUrl}/feedback/projects`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (projectRes.ok) {
+            const projectData = await projectRes.json();
+            // Filter out "all" option for individual reports
+            const filteredProjects = projectData.data
+              ? projectData.data.filter((project) => project !== "all")
+              : [];
+            setProjectOptions(
+              filteredProjects.length > 0
+                ? filteredProjects
+                : uniqueProjectNames
+            );
+          } else {
+            // Fallback to extracted names
+            setProjectOptions(
+              uniqueProjectNames.length > 0
+                ? uniqueProjectNames
+                : ["Default Project"]
+            );
+          }
+        } catch (projectErr) {
+          console.error("Failed to fetch project names:", projectErr);
+          setProjectOptions(
+            uniqueProjectNames.length > 0
+              ? uniqueProjectNames
+              : ["Default Project"]
+          );
+        }
+
         if (foundReport) {
           setReport(foundReport);
           setNewStatus(foundReport.status);
+          setOriginalStatus(foundReport.status);
+          const defaultProjectName =
+            foundReport.projectName || "Default Project";
+          setProjectName(defaultProjectName);
+          setOriginalProjectName(defaultProjectName);
         }
       } catch (err) {
         console.error("Fetch failed:", err.message);
@@ -48,6 +104,47 @@ const ReportDetail = () => {
 
     fetchReports();
   }, [id]);
+
+  const handleProjectUpdate = async () => {
+    setUpdatingProject(true);
+    setProjectUpdateMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${apiUrl}/feedback/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ projectName: projectName }),
+      });
+
+      const text = await res.text();
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/", {
+          state: { message: "Please login again" },
+          replace: true,
+        });
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to update project name");
+
+      const updated = JSON.parse(text);
+      setReport((prev) => ({ ...prev, projectName: updated.data.projectName }));
+      setOriginalProjectName(updated.data.projectName);
+      setProjectUpdateMessage("Project name updated successfully");
+    } catch (err) {
+      console.error("Project update error:", err.message);
+      setProjectUpdateMessage("Error updating project name");
+    } finally {
+      setUpdatingProject(false);
+    }
+  };
 
   const handleStatusUpdate = async () => {
     setUpdating(true);
@@ -80,6 +177,7 @@ const ReportDetail = () => {
 
       const updated = JSON.parse(text);
       setReport((prev) => ({ ...prev, status: updated.data.status }));
+      setOriginalStatus(updated.data.status);
       setUpdateMessage("Status updated successfully");
     } catch (err) {
       console.error("Update error:", err.message);
@@ -117,7 +215,12 @@ const ReportDetail = () => {
     updatedAt,
     metadata,
     name,
+    projectName: currentProjectName,
   } = report;
+
+  // Check if values have changed from original
+  const isProjectChanged = projectName !== originalProjectName;
+  const isStatusChanged = newStatus !== originalStatus;
 
   return (
     <div className="flex md:pl-[100px] max-md:pl-4 max-md:pr-4 max-md:py-10 pr-5 ml-5 overflow-auto">
@@ -128,6 +231,48 @@ const ReportDetail = () => {
             <div>
               <h1 className="text-2xl font-bold mb-5">Title</h1>
               <p className="text-xl break-words">{title}</p>
+
+              {/* Project Name Dropdown */}
+              <div className="mt-6">
+                <label className="block mb-2 font-semibold">
+                  Project Name:
+                </label>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <select
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="bg-neutral-800 hover:bg-neutral-700 text-white px-3 py-1 rounded cursor-pointer min-w-[150px]"
+                  >
+                    {projectOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleProjectUpdate}
+                    className={`px-4 py-1 rounded transition-all duration-200 ${
+                      isProjectChanged && !updatingProject
+                        ? "bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
+                        : "bg-neutral-600 cursor-not-allowed opacity-50"
+                    }`}
+                    disabled={!isProjectChanged || updatingProject}
+                  >
+                    {updatingProject ? "Updating..." : "Update Project"}
+                  </button>
+                </div>
+                {projectUpdateMessage && (
+                  <p
+                    className={`mt-2 text-sm ${
+                      projectUpdateMessage.includes("successfully")
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {projectUpdateMessage}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="mt-6">
@@ -196,8 +341,12 @@ const ReportDetail = () => {
                   </select>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-neutral-800 px-4 py-1 rounded hover:bg-neutral-700 cursor-pointer transition-all duration-200"
-                    disabled={updating}
+                    className={`px-4 py-1 rounded transition-all duration-200 ${
+                      isStatusChanged && !updating
+                        ? "bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
+                        : "bg-neutral-600 cursor-not-allowed opacity-50"
+                    }`}
+                    disabled={!isStatusChanged || updating}
                   >
                     {updating ? "Updating..." : "Submit"}
                   </button>

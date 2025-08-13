@@ -22,10 +22,15 @@ const loginSchema = new mongoose.Schema(
         message: "Invalid email format",
       },
     },
-    project: {
-      type: String,
-      default: "all",
-      trim: true,
+    projects: {
+      type: [String],
+      default: ["all"],
+      validate: {
+        validator: function (v) {
+          return v && v.length > 0;
+        },
+        message: "Projects array cannot be empty",
+      },
     },
   },
   {

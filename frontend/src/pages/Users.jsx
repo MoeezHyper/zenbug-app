@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { FiPlus, FiX, FiCheck } from "react-icons/fi";
+import { FiPlus, FiX, FiCheck, FiEdit2 } from "react-icons/fi";
 
 const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUserProjects, setSelectedUserProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [users, setUsers] = useState([]);
@@ -53,7 +56,7 @@ const Users = () => {
   };
 
   // Update user project
-  const updateUserProject = async (userId, newProject) => {
+  const updateUserProject = async (userId, newProjects) => {
     setUpdatingUser(userId);
     try {
       const apiUrl = import.meta.env.VITE_API_URL;
@@ -64,14 +67,14 @@ const Users = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ project: newProject }),
+        body: JSON.stringify({ projects: newProjects }),
       });
 
       if (response.ok) {
         // Update local state
         setUsers((prevUsers) =>
           prevUsers.map((user) =>
-            user._id === userId ? { ...user, project: newProject } : user
+            user._id === userId ? { ...user, projects: newProjects } : user
           )
         );
 
@@ -91,8 +94,58 @@ const Users = () => {
   };
 
   // Handle project change
-  const handleProjectChange = (userId, newProject) => {
-    updateUserProject(userId, newProject);
+  const handleProjectChange = (userId, newProjects) => {
+    updateUserProject(userId, newProjects);
+    setIsProjectModalOpen(false);
+  };
+
+  // Open project modal
+  const openProjectModal = (userId, currentProjects) => {
+    setSelectedUserId(userId);
+    // Ensure we always work with an array
+    const projects = Array.isArray(currentProjects)
+      ? currentProjects
+      : currentProjects
+        ? [currentProjects]
+        : ["all"];
+    setSelectedUserProjects(projects);
+    setIsProjectModalOpen(true);
+  };
+
+  // Close project modal
+  const closeProjectModal = () => {
+    setIsProjectModalOpen(false);
+    setSelectedUserId(null);
+    setSelectedUserProjects([]);
+  };
+
+  // Toggle project selection
+  const toggleProjectSelection = (project) => {
+    setSelectedUserProjects((prev) => {
+      if (project === "all") {
+        // If "all" is selected, clear all other selections and only select "all"
+        if (prev.includes("all")) {
+          // If "all" was already selected, unselect it
+          return prev.filter((p) => p !== "all");
+        } else {
+          // Select only "all" and clear everything else
+          return ["all"];
+        }
+      } else {
+        // If any other project is selected, remove "all" from selection
+        let newProjects = prev.filter((p) => p !== "all");
+
+        if (newProjects.includes(project)) {
+          // Remove the project if it's already selected
+          newProjects = newProjects.filter((p) => p !== project);
+        } else {
+          // Add the project if it's not selected
+          newProjects = [...newProjects, project];
+        }
+
+        return newProjects;
+      }
+    });
   };
 
   // Fetch project names from reports
@@ -133,7 +186,7 @@ const Users = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...formData, project: "all" }),
+        body: JSON.stringify({ ...formData, projects: ["all"] }),
       });
 
       if (response.ok) {
@@ -195,21 +248,38 @@ const Users = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-300">Project:</span>
-                    <select
-                      value={user.project || "all"}
-                      onChange={(e) =>
-                        handleProjectChange(user._id, e.target.value)
-                      }
-                      disabled={updatingUser === user._id}
-                      className="bg-neutral-600 border cursor-pointer border-neutral-500 rounded px-1 py-1 text-white focus:outline-none focus:border-neutral-400 disabled:opacity-50"
-                    >
-                      {projectNames.map((project) => (
-                        <option key={project} value={project}>
-                          {project.charAt(0).toUpperCase() + project.slice(1)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-neutral-300">
+                        Projects:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {user.projects && user.projects.length > 0 ? (
+                          user.projects.map((project, index) => (
+                            <span
+                              key={index}
+                              className="text-xs text-white px-2 py-1 bg-neutral-600 rounded"
+                            >
+                              {project.charAt(0).toUpperCase() +
+                                project.slice(1)}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-white px-2 py-1 bg-neutral-600 rounded">
+                            All
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() =>
+                          openProjectModal(user._id, user.projects)
+                        }
+                        disabled={updatingUser === user._id}
+                        className="text-neutral-400 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                        title="Edit projects"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                    </div>
 
                     {updatingUser === user._id && (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -221,7 +291,7 @@ const Users = () => {
                   <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-lg">
                     <FiCheck size={16} className="text-green-500" />
                     <p className="text-sm text-green-500">
-                      Project assignment updated successfully!
+                      Project assignments updated successfully!
                     </p>
                   </div>
                 )}
@@ -326,6 +396,100 @@ const Users = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Project Selection Modal */}
+      {isProjectModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-neutral-800 rounded-lg p-6 w-full max-w-md mx-4 border border-neutral-700">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Project List</h2>
+              <button
+                onClick={closeProjectModal}
+                className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {projectNames.map((project) => {
+                const isSelected = selectedUserProjects.includes(project);
+                const isAllSelected = selectedUserProjects.includes("all");
+                const isDisabled = isAllSelected && project !== "all";
+
+                return (
+                  <div
+                    key={project}
+                    className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                      isDisabled
+                        ? "bg-neutral-600 border border-neutral-500 cursor-not-allowed opacity-50"
+                        : isSelected
+                          ? "bg-blue-600/20 border border-blue-500/50 cursor-pointer"
+                          : "bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 cursor-pointer"
+                    }`}
+                    onClick={() =>
+                      !isDisabled && toggleProjectSelection(project)
+                    }
+                  >
+                    <span
+                      className={`${isDisabled ? "text-neutral-400" : "text-white"}`}
+                    >
+                      {project.charAt(0).toUpperCase() + project.slice(1)}
+                    </span>
+                    {isSelected && (
+                      <FiCheck
+                        size={18}
+                        className={
+                          isDisabled ? "text-neutral-400" : "text-blue-500"
+                        }
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedUserProjects.length > 0 && (
+              <div className="mt-4 p-3 bg-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-300 mb-2">
+                  Selected projects:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUserProjects.map((project, index) => (
+                    <span
+                      key={index}
+                      className="text-xs text-white px-2 py-1 bg-blue-600 rounded"
+                    >
+                      {project.charAt(0).toUpperCase() + project.slice(1)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={closeProjectModal}
+                className="flex-1 px-4 py-2 bg-neutral-600 hover:bg-neutral-500 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  handleProjectChange(selectedUserId, selectedUserProjects)
+                }
+                disabled={
+                  updatingUser === selectedUserId ||
+                  selectedUserProjects.length === 0
+                }
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                {updatingUser === selectedUserId ? "Updating..." : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}

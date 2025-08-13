@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
 export const Register = async (req, res) => {
-  const { username, password, email, project = "all" } = req.body;
+  const { username, password, email, project, projects } = req.body;
 
   if (!username || !password || !email) {
     return res
@@ -22,11 +22,22 @@ export const Register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Handle both old and new API formats
+    let userProjects;
+    if (projects && Array.isArray(projects) && projects.length > 0) {
+      userProjects = projects;
+    } else if (project) {
+      userProjects = [project];
+    } else {
+      userProjects = ["all"];
+    }
+
     const user = new Login({
       username,
       email,
       password: hashedPassword,
-      project,
+      projects: userProjects,
     });
     await user.save();
 
@@ -90,18 +101,33 @@ export const getAllUsers = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { project } = req.body;
+  const { project, projects } = req.body;
 
-  if (!project) {
+  // Accept either projects array or single project
+  if (!projects && !project) {
     return res
       .status(400)
-      .json({ success: false, message: "Project field is required" });
+      .json({
+        success: false,
+        message: "Project or projects field is required",
+      });
   }
 
   try {
+    let userProjects;
+
+    // Handle projects array (preferred format)
+    if (projects && Array.isArray(projects) && projects.length > 0) {
+      userProjects = projects;
+    }
+    // Handle single project (legacy format)
+    else if (project) {
+      userProjects = [project];
+    }
+
     const updatedUser = await Login.findByIdAndUpdate(
       id,
-      { project },
+      { projects: userProjects },
       { new: true, select: { password: 0 } } // Exclude password from response
     );
 

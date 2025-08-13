@@ -148,13 +148,15 @@ export const getReport = async (req, res) => {
   try {
     let query = {};
 
-    // If user is not admin and has a specific project assignment, filter reports
-    if (
-      req.user.username !== "admin" &&
-      req.user.project &&
-      req.user.project !== "all"
-    ) {
-      query.projectName = req.user.project;
+    // If user is not admin and has project assignments, filter reports
+    if (req.user.username !== "admin") {
+      // Get user's projects array
+      const userProjects = req.user.projects || ["all"];
+
+      // If user doesn't have "all" access, filter by their assigned projects
+      if (!userProjects.includes("all")) {
+        query.projectName = { $in: userProjects };
+      }
     }
 
     const report = await Report.find(query);
@@ -164,7 +166,6 @@ export const getReport = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 export const updateReport = async (req, res) => {
   const { id } = req.params;
 
