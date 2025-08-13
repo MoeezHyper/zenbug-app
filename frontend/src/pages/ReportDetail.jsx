@@ -120,9 +120,9 @@ const ReportDetail = () => {
   } = report;
 
   return (
-    <div className="flex md:pl-[100px] max-md:pl-4 max-md:pr-4 max-md:py-10 pr-5 ml-5">
+    <div className="flex md:pl-[100px] max-md:pl-4 max-md:pr-4 max-md:py-10 pr-5 ml-5 overflow-auto">
       <div className="flex flex-1 justify-center items-start pt-10 text-white font-montserrat w-full">
-        <div className="bg-neutral-900 mt-15 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between gap-10 w-full max-w-[85%] min-h-[700px]">
+        <div className="bg-neutral-900 my-5 p-10 rounded-2xl flex flex-col md:flex-row justify-between gap-10 w-full max-w-[85%] min-h-[700px]">
           {/* LEFT SIDE */}
           <div className="flex flex-col justify-between w-full md:w-1/2">
             <div>

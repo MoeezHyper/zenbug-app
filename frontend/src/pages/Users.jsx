@@ -188,7 +188,7 @@ const Users = () => {
           <div className="space-y-4">
             {users.map((user) => (
               <div key={user._id} className="space-y-2">
-                <div className="flex items-center justify-between p-4 bg-neutral-700 rounded-lg border border-neutral-600">
+                <div className="flex items-center justify-between p-3 bg-neutral-700 rounded-lg border border-neutral-600">
                   <div className="flex-1">
                     <h3 className="font-medium text-white">{user.username}</h3>
                     <p className="text-sm text-neutral-400">{user.email}</p>
@@ -202,7 +202,7 @@ const Users = () => {
                         handleProjectChange(user._id, e.target.value)
                       }
                       disabled={updatingUser === user._id}
-                      className="bg-neutral-600 border cursor-pointer border-neutral-500 rounded px-2 py-1 text-white focus:outline-none focus:border-neutral-400 disabled:opacity-50"
+                      className="bg-neutral-600 border cursor-pointer border-neutral-500 rounded px-1 py-1 text-white focus:outline-none focus:border-neutral-400 disabled:opacity-50"
                     >
                       {projectNames.map((project) => (
                         <option key={project} value={project}>
