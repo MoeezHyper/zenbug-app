@@ -7,6 +7,7 @@ const ReportDetail = () => {
 
   const [report, setReport] = useState(null);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [originalStatus, setOriginalStatus] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -19,6 +20,24 @@ const ReportDetail = () => {
   const [projectUpdateMessage, setProjectUpdateMessage] = useState("");
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+
+  // Check if user is admin
+  const checkAdminStatus = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setIsAdmin(payload.username === "admin");
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        setIsAdmin(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -232,47 +251,49 @@ const ReportDetail = () => {
               <h1 className="text-2xl font-bold mb-5">Title</h1>
               <p className="text-xl break-words">{title}</p>
 
-              {/* Project Name Dropdown */}
-              <div className="mt-6">
-                <label className="block mb-2 font-semibold">
-                  Project Name:
-                </label>
-                <div className="flex flex-wrap gap-4 items-center">
-                  <select
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                    className="bg-neutral-800 hover:bg-neutral-700 text-white px-3 py-1 rounded cursor-pointer min-w-[150px]"
-                  >
-                    {projectOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleProjectUpdate}
-                    className={`px-4 py-1 rounded transition-all duration-200 ${
-                      isProjectChanged && !updatingProject
-                        ? "bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
-                        : "bg-neutral-600 cursor-not-allowed opacity-50"
-                    }`}
-                    disabled={!isProjectChanged || updatingProject}
-                  >
-                    {updatingProject ? "Updating..." : "Update Project"}
-                  </button>
+              {/* Project Name Dropdown - Admin Only */}
+              {isAdmin && (
+                <div className="mt-6">
+                  <label className="block mb-2 font-semibold">
+                    Project Name:
+                  </label>
+                  <div className="flex flex-wrap gap-4 items-center">
+                    <select
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="bg-neutral-800 hover:bg-neutral-700 text-white px-3 py-1 rounded cursor-pointer min-w-[150px]"
+                    >
+                      {projectOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleProjectUpdate}
+                      className={`px-4 py-1 rounded transition-all duration-200 ${
+                        isProjectChanged && !updatingProject
+                          ? "bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
+                          : "bg-neutral-600 cursor-not-allowed opacity-50"
+                      }`}
+                      disabled={!isProjectChanged || updatingProject}
+                    >
+                      {updatingProject ? "Updating..." : "Update Project"}
+                    </button>
+                  </div>
+                  {projectUpdateMessage && (
+                    <p
+                      className={`mt-2 text-sm ${
+                        projectUpdateMessage.includes("successfully")
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {projectUpdateMessage}
+                    </p>
+                  )}
                 </div>
-                {projectUpdateMessage && (
-                  <p
-                    className={`mt-2 text-sm ${
-                      projectUpdateMessage.includes("successfully")
-                        ? "text-green-400"
-                        : "text-red-400"
-                    }`}
-                  >
-                    {projectUpdateMessage}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="mt-6">
