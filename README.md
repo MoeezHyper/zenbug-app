@@ -41,7 +41,6 @@ ZenBug is a full-stack feedback and bug-reporting platform that makes it easy fo
 | ------ | ------------------- | ------- | -------------------- |
 | POST   | `/api/feedback`     | API Key | Submit a bug report  |
 | GET    | `/api/feedback`     | JWT     | Get all reports      |
-| GET    | `/api/feedback/:id` | JWT     | Get single report    |
 | PATCH  | `/api/feedback/:id` | JWT     | Update report status |
 | DELETE | `/api/feedback/:id` | JWT     | Delete a report      |
 
