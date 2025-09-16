@@ -10,10 +10,10 @@ ZenBug is a full-stack feedback and bug-reporting platform that makes it easy fo
 - 🌐 **Chrome Extension** – Lightweight extension version of the widget.  
 - 🗄️ **Storage & Metadata**  
   - Screenshots & videos stored in **Supabase Storage**.  
-  - Metadata includes browser, OS, viewport, and current URL (via `UAParser.js`).  
+  - Metadata includes browser, OS, viewport, IP, Location, and current URL (via `UAParser.js`).  
 - 🔑 **Authentication** –  
   - **JWT** for protected routes.  
-  - **API Key** for open bug submissions (no Supabase Auth).  
+  - **API Key** for open bug submissions.  
 - 📊 **Admin Dashboard** – View, filter, and manage reports.  
 - ☁️ **Deployment** – Serverless backend on Vercel + Supabase integration.
 
